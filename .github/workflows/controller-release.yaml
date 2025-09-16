@@ -1,0 +1,143 @@
+name: controller-release
+
+on:
+  workflow_call:
+    inputs:
+      controller:
+        description: 'controller name'
+        required: true
+        type: string
+      release-candidate-prefix:
+        description: 'release candidate image tag prefix'
+        required: true
+        type: string
+    secrets:
+      github-token:
+        description: 'GitHub token (for pushing to GHCR and creating GitHub releases)'
+        required: true
+      dockerhub-token:
+        description: 'Docker Hub token'
+        required: true
+    outputs:
+      release-digests:
+        description: 'Release artifacts digests compatible with SLSA'
+        value: ${{ jobs.release.outputs.release-digests }}
+      image-name:
+        description: 'Published container image name (without the registry)'
+        value: ${{ jobs.release.outputs.image-name }}
+      image-digest:
+        description: 'Published container image digest'
+        value: ${{ jobs.release.outputs.image-digest }}
+
+jobs:
+  release:
+    outputs:
+      release-digests: ${{ steps.slsa.outputs.release-digests }}
+      image-name: ${{ steps.slsa.outputs.image-name }}
+      image-digest: ${{ steps.slsa.outputs.image-digest }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # for creating the GitHub release.
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for pushing and signing container images.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Setup Kustomize
+        uses: fluxcd/pkg/actions/kustomize@7f090e931301b18cbdc37d9a28b08f84ba1270fb # main
+      - name: Prepare
+        id: prep
+        env:
+          GIT_REF: ${{ github.ref }}
+          GIT_SHA: ${{ github.sha }}
+          RELEASE_CANDIDATE_PREFIX: ${{ inputs.release-candidate-prefix }}
+        run: |
+          VERSION="${RELEASE_CANDIDATE_PREFIX}-${GIT_SHA::8}"
+          if [[ $GIT_REF == refs/tags/* ]]; then
+            VERSION=${GIT_REF/refs\/tags\//}
+          fi
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+      - name: Setup Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: fluxcdbot # not necessary for ghcr.io
+          password: ${{ secrets.github-token }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          username: ${{ github.repository_owner == 'fluxcd' && 'fluxcdbot' || github.repository_owner }}
+          password: ${{ secrets.dockerhub-token }}
+      - name: Generate images meta
+        id: meta
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: |
+            ${{ github.repository_owner }}/${{ inputs.controller }}
+            ghcr.io/${{ github.repository_owner }}/${{ inputs.controller }}
+          tags: |
+            type=raw,value=${{ steps.prep.outputs.VERSION }}
+      - name: Publish images
+        id: build-push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          sbom: true
+          provenance: true
+          push: true
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+      - name: Sign images
+        env:
+          COSIGN_EXPERIMENTAL: 1
+          CONTROLLER: ${{ inputs.controller }}
+          DIGEST: ${{ steps.build-push.outputs.digest }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          cosign sign --yes ${REPOSITORY_OWNER}/${CONTROLLER}@${DIGEST}
+          cosign sign --yes ghcr.io/${REPOSITORY_OWNER}/${CONTROLLER}@${DIGEST}
+      - name: Generate release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          CONTROLLER: ${{ inputs.controller }}
+        run: |
+          mkdir -p config/release
+          kustomize build ./config/crd > ./config/release/${CONTROLLER}.crds.yaml
+          kustomize build ./config/manager > ./config/release/${CONTROLLER}.deployment.yaml
+      - uses: anchore/sbom-action/download-syft@da167eac915b4e86f08b264dbdbc867b61be6f0c # v0.20.5
+      - name: Create release and SBOM
+        id: run-goreleaser
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        with:
+          version: latest
+          args: release --clean --skip=validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
+      - name: Generate SLSA metadata
+        id: slsa
+        env:
+          ARTIFACTS: "${{ steps.run-goreleaser.outputs.artifacts }}"
+          CONTROLLER: ${{ inputs.controller }}
+          VERSION: ${{ steps.prep.outputs.version }}
+          BUILD_DIGEST: ${{ steps.build-push.outputs.digest }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          release_digests=$(echo $ARTIFACTS | jq --raw-output '.[] | {name, "digest": (.extra.Digest // .extra.Checksum)} | select(.digest) | {digest} + {name} | join("  ") | sub("^sha256:";"")' | base64 -w0)
+          echo "release-digests=$release_digests" >> $GITHUB_OUTPUT
+
+          image_name=${REPOSITORY_OWNER}/${CONTROLLER}:${VERSION}
+          echo "image-name=$image_name" >> $GITHUB_OUTPUT
+
+          image_digest=${BUILD_DIGEST}
+          echo "image-digest=$image_digest" >> $GITHUB_OUTPUT

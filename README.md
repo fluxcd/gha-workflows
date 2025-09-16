@@ -7,6 +7,66 @@ This repository contains reusable GitHub Workflows shared across the Flux contro
 
 ## Workflows
 
+### Release Flux controllers
+
+The [controller-release](.github/workflows/controller-release.yaml) workflow automates the release of
+Flux controllers by performing the following steps:
+
+- Builds multi-arch images for `linux/amd64`, `linux/arm64` and `linux/arm/v7` with Docker
+- Generates SBOMs for each architecture with Syft
+- Pushes the images to `ghcr.io/fluxcd` and `docker.io/fluxcd`
+- Signs the images with Cosign and GitHub OIDC
+- Creates a GitHub Release with GoReleaser
+- Outputs metadata for SLSA attestations
+
+Example usage:
+
+```yaml
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'image tag prefix'
+        default: 'rc'
+        required: false
+
+jobs:
+  release:
+    permissions:
+      contents: write # for creating the GitHub release.
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for pushing and signing container images.
+    uses: fluxcd/gha-workflows/.github/workflows/controller-release.yaml@vX.Y.Z
+    with:
+      controller: ${{ github.event.repository.name }}
+      release-candidate-prefix: ${{ github.event.inputs.tag }}
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      dockerhub-token: ${{ secrets.DOCKER_FLUXCD_PASSWORD }}
+```
+
+3rd-party actions used:
+
+- [docker/setup-qemu-action](https://github.com/docker/setup-qemu-action)
+- [docker/setup-buildx-action](https://github.com/docker/setup-buildx-action)
+- [docker/login-action](https://github.com/docker/login-action)
+- [docker/metadata-action](https://github.com/docker/metadata-action)
+- [docker/build-push-action](https://github.com/docker/build-push-action)
+- [sigstore/cosign-installer](https://github.com/sigstore/cosign-installer)
+- [anchore/sbom-action](https://github.com/anchore/sbom-action)
+- [goreleaser/goreleaser-action](https://github.com/goreleaser/goreleaser-action)
+
+Outputs:
+
+- `release-digests`: Release artifacts digests compatible with SLSA
+- `image-name`: Published container image name (without the registry)
+- `image-digest`: Published container image digest
+
 ### Backport to Release Branches
 
 The [backport](.github/workflows/backport.yaml) workflow automates the backporting of merged pull
