@@ -12,6 +12,10 @@ on:
         required: false
         type: boolean
         default: true
+    secrets:
+      github-token:
+        description: 'GitHub token with issues write permissions'
+        required: true
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -26,3 +30,4 @@ jobs:
             https://raw.githubusercontent.com/fluxcd/community/main/.github/standard-labels.yaml
             ${{ inputs.path }}
           delete-other-labels: ${{ inputs.delete-other-labels }}
+          token: ${{ secrets.github-token }}
