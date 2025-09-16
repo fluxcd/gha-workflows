@@ -28,6 +28,6 @@ jobs:
         with:
           config-file: |
             https://raw.githubusercontent.com/fluxcd/community/main/.github/standard-labels.yaml
-            ${{ inputs.path }}
+            ${{ inputs.labels-file }}
           delete-other-labels: ${{ inputs.delete-other-labels }}
           token: ${{ secrets.github-token }}
