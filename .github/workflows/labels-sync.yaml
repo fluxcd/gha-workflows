@@ -2,7 +2,7 @@ name: labels-sync
 on:
   workflow_call:
     inputs:
-      path:
+      labels-file:
         description: 'path to custom labels file'
         default: '.github/labels.yaml'
         required: false
