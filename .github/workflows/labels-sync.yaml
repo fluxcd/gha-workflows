@@ -12,9 +12,8 @@ on:
         required: false
         type: boolean
         default: true
-
 jobs:
-  run-labels-sync:
+  run:
     runs-on: ubuntu-latest
     permissions:
       contents: read
