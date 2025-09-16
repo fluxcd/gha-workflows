@@ -7,14 +7,98 @@ This repository contains reusable GitHub Workflows shared across the Flux contro
 
 ## Workflows
 
-- [backport](.github/workflows/backport.yaml):
-  Automates the backporting of merged pull requests to release branches based on labels.
-- [code-scan](.github/workflows/code-scan.yaml):
-  Analyzes the code for security vulnerabilities using [CodeQL](https://codeql.github.com/) and
-  validates the licenses of the dependencies using [FOSSA](https://fossa.com/).
-- [labels-sync](.github/workflows/labels-sync.yaml):
-  Synchronizes the [standard](https://github.com/fluxcd/community/blob/main/.github/standard-labels.yaml)
-  and custom labels to the current repository.
+### Backport to Release Branches
+
+The [backport](.github/workflows/backport.yaml) workflow automates the backporting of merged pull
+requests to release branches based on labels in the format `backport:release/semver`
+(e.g. `backport:release/v2.0.x`).
+
+Example usage:
+
+```yaml
+name: backport
+on:
+  pull_request_target:
+    types: [closed, labeled]
+jobs:
+  backport:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: fluxcd/gha-workflows/.github/workflows/backport.yaml@vX.Y.Z
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+3rd-party actions used:
+
+- [korthout/backport-action](https://github.com/korthout/backport-action)
+
+### Code Scanning and License Validation
+
+The [code-scan](.github/workflows/code-scan.yaml) workflow analyzes the code for security vulnerabilities
+using [CodeQL](https://codeql.github.com/) and validates the licenses of the dependencies
+using [FOSSA](https://fossa.com/).
+
+Example usage:
+
+```yaml
+name: code-scan
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  analyze:
+    permissions:
+      contents: read
+      security-events: write
+    uses: fluxcd/gha-workflows/.github/workflows/code-scan.yaml@vX.Y.Z
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      fossa-token: ${{ secrets.FOSSA_TOKEN }}
+```
+
+The CodeQL analysis uploads the results to GitHub Code Scanning Alerts,
+and the FOSSA analysis uploads the results to the FOSSA dashboard.
+
+3rd-party actions used:
+
+- [fossas/fossa-action](https://github.com/fossas/fossa-action)
+
+### Sync Repository Labels
+
+The [labels-sync](.github/workflows/labels-sync.yaml) workflow synchronizes the
+[standard](https://github.com/fluxcd/community/blob/main/.github/standard-labels.yaml)
+and custom labels to the current repository.
+
+Example usage:
+
+```yaml
+name: sync-labels
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/labels.yaml
+jobs:
+  sync-labels:
+    permissions:
+      issues: write
+      contents: read
+    uses: fluxcd/gha-workflows/.github/workflows/labels-sync.yaml@vX.Y.Z
+    with:
+      labels-file: .github/labels.yaml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+3rd-party actions used:
+
+- [EndBug/label-sync](https://github.com/EndBug/label-sync)
 
 ## Contributing
 
