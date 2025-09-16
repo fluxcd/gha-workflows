@@ -1,0 +1,29 @@
+name: labels-sync
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: 'path to custom labels file'
+        default: '.github/labels.yaml'
+        required: false
+        type: string
+      delete-other-labels:
+        description: 'delete labels not in the config files'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  run-labels-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: EndBug/label-sync@52074158190acb45f3077f9099fea818aa43f97a # v2.3.3
+        with:
+          config-file: |
+            https://raw.githubusercontent.com/fluxcd/community/main/.github/standard-labels.yaml
+            ${{ inputs.path }}
+          delete-other-labels: ${{ inputs.delete-other-labels }}
