@@ -44,7 +44,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Setup Kustomize
-        uses: fluxcd/pkg/actions/kustomize@7f090e931301b18cbdc37d9a28b08f84ba1270fb # main
+        uses: fluxcd/pkg/actions/kustomize@bf02f0a2d612cc07e0892166369fa8f63246aabb # main
       - name: Prepare
         id: prep
         env:
@@ -96,7 +96,7 @@ jobs:
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
       - name: Sign images
         env:
           COSIGN_EXPERIMENTAL: 1
@@ -114,7 +114,7 @@ jobs:
           mkdir -p config/release
           kustomize build ./config/crd > ./config/release/${CONTROLLER}.crds.yaml
           kustomize build ./config/manager > ./config/release/${CONTROLLER}.deployment.yaml
-      - uses: anchore/sbom-action/download-syft@da167eac915b4e86f08b264dbdbc867b61be6f0c # v0.20.5
+      - uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
       - name: Create release and SBOM
         id: run-goreleaser
         if: startsWith(github.ref, 'refs/tags/v')
