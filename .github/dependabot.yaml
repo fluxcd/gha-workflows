@@ -2,15 +2,8 @@ version: 2
 
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/"
-    groups:
-      workflows:
-        patterns:
-          - "*"
-    schedule:
-      interval: "daily"
-  - package-ecosystem: "github-actions"
     directories:
+      - "/"
       - "/.github/actions/setup-kubernetes"
     groups:
       actions:
