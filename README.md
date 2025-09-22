@@ -160,7 +160,7 @@ jobs:
 
 ### Setup Kubernetes
 
-The [setup-kubernetes](.github/actions/setup-kubernetes/action.yaml) composite action configures
+The [setup-kubernetes](.github/actions/setup-kubernetes/action.yml) composite action configures
 the GitHub runner to build and test Flux controllers with Kubernetes Kind clusters.
 
 Example usage:

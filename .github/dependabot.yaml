@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: "github-actions"
     directories:
       - "/"
-      - "/.github/actions/*"
+      - "/.github/actions/*/action.yml"
     groups:
       actions:
         patterns:
