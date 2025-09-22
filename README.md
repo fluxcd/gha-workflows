@@ -3,38 +3,35 @@
 [![license](https://img.shields.io/github/license/fluxcd/gha-workflows.svg)](https://github.com/fluxcd/gha-workflows/blob/main/LICENSE)
 [![release](https://img.shields.io/github/release/fluxcd/gha-workflows/all.svg)](https://github.com/fluxcd/gha-workflows/releases)
 
-This repository contains reusable GitHub Workflows shared across the Flux controller repositories.
+This repository contains reusable GitHub Workflows and Composite Actions shared across the Flux controller repositories.
 
 ## Workflows
 
-### Release Flux controllers
+### Release Flux controller
 
 The [controller-release](.github/workflows/controller-release.yaml) workflow automates the release of
 Flux controllers by performing the following steps:
 
-- Builds multi-arch images for `linux/amd64`, `linux/arm64` and `linux/arm/v7` with Docker
-- Generates SBOMs for each architecture with Syft
-- Pushes the images to `ghcr.io/fluxcd` and `docker.io/fluxcd`
-- Signs the images with Cosign and GitHub OIDC
-- Creates a GitHub Release with GoReleaser
-- Outputs metadata for SLSA attestations
+- Builds multi-arch images for `linux/amd64`, `linux/arm64` and `linux/arm/v7` with Docker.
+- Generates SBOMs for each architecture with Syft.
+- Pushes the images to `ghcr.io/fluxcd` and `docker.io/fluxcd`.
+- Signs the images with Cosign and GitHub OIDC.
+- Creates a GitHub Release with GoReleaser.
+- Outputs metadata for SLSA attestations.
 
 Example usage:
 
 ```yaml
 name: release
-
 on:
   push:
-    tags:
-      - 'v*'
+    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       tag:
         description: 'image tag prefix'
         default: 'rc'
         required: false
-
 jobs:
   release:
     permissions:
@@ -47,7 +44,7 @@ jobs:
       release-candidate-prefix: ${{ github.event.inputs.tag }}
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
-      dockerhub-token: ${{ secrets.DOCKER_FLUXCD_PASSWORD }}
+      dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 ```
 
 3rd-party actions used:
@@ -83,8 +80,8 @@ on:
 jobs:
   backport:
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # for reading and creating branches.
+      pull-requests: write # for creating pull requests against release branches.
     uses: fluxcd/gha-workflows/.github/workflows/backport.yaml@vX.Y.Z
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -112,8 +109,8 @@ on:
 jobs:
   analyze:
     permissions:
-      contents: read
-      security-events: write
+      contents: read # for reading the repository code.
+      security-events: write # for uploading the CodeQL analysis results.
     uses: fluxcd/gha-workflows/.github/workflows/code-scan.yaml@vX.Y.Z
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -140,15 +137,14 @@ name: sync-labels
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - .github/labels.yaml
 jobs:
   sync-labels:
     permissions:
-      issues: write
-      contents: read
+      contents: read # for reading the labels file.
+      issues: write # for creating and updating labels.
     uses: fluxcd/gha-workflows/.github/workflows/labels-sync.yaml@vX.Y.Z
     with:
       labels-file: .github/labels.yaml
@@ -159,6 +155,42 @@ jobs:
 3rd-party actions used:
 
 - [EndBug/label-sync](https://github.com/EndBug/label-sync)
+
+## Composite Actions
+
+### Setup Kubernetes
+
+The [setup-kubernetes](.github/actions/setup-kubernetes/action.yaml) composite action configures
+the GitHub runner to build and test Flux controllers with Kubernetes Kind clusters.
+
+Example usage:
+
+```yaml
+name: e2e
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # for reading the repository code.
+    steps:
+      - name: Test suite setup
+        uses: fluxcd/gha-workflows/.github/actions/setup-kubernetes@vX.Y.Z
+        with:
+          go-version: 1.25.x
+          kind-version: v0.30.0
+      - name: Run tests
+        run: make test
+```
+
+3rd-party actions used:
+
+- [docker/setup-qemu-action](https://github.com/docker/setup-qemu-action)
+- [docker/setup-buildx-action](https://github.com/docker/setup-buildx-action)
+- [helm/kind-action](https://github.com/helm/kind-action)
 
 ## Contributing
 
