@@ -42,9 +42,9 @@ jobs:
       packages: write # for pushing and signing container images.
     steps:
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setup Kustomize
-        uses: fluxcd/pkg/actions/kustomize@62ddfc16c29b86028b855f5b999329c6abca4207 # main
+        uses: fluxcd/pkg/actions/kustomize@cde06a52d9795fada48a80abf7d4a1f6d48d2ee4 # main
       - name: Prepare
         id: prep
         env:
@@ -62,7 +62,7 @@ jobs:
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
       - name: Setup Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Login to GitHub Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
@@ -76,7 +76,7 @@ jobs:
           password: ${{ secrets.dockerhub-token }}
       - name: Generate images meta
         id: meta
-        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5.9.0
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: |
             ${{ github.repository_owner }}/${{ inputs.controller }}
@@ -116,7 +116,7 @@ jobs:
           mkdir -p config/release
           kustomize build ./config/crd > ./config/release/${CONTROLLER}.crds.yaml
           kustomize build ./config/manager > ./config/release/${CONTROLLER}.deployment.yaml
-      - uses: anchore/sbom-action/download-syft@fbfd9c6c189226748411491745178e0c2017392d # v0.20.10
+      - uses: anchore/sbom-action/download-syft@62ad5284b8ced813296287a0b63906cb364b73ee # v0.22.0
       - name: Create release and SBOM
         id: run-goreleaser
         if: startsWith(github.ref, 'refs/tags/v')
