@@ -124,6 +124,52 @@ and the FOSSA analysis uploads the results to the FOSSA dashboard.
 
 - [fossas/fossa-action](https://github.com/fossas/fossa-action)
 
+### Update fluxcd/pkg Dependencies
+
+The [bump-deps](.github/workflows/bump-deps.yaml) workflow automates updating `fluxcd/pkg` module
+dependencies in Flux controller repositories by performing the following steps:
+
+- Checks out the caller repository and `fluxcd/pkg` at the `main` branch.
+- Builds and runs the `flux-tools bump` command to update `go.mod` with the latest `fluxcd/pkg` module versions.
+- Runs `make tidy` to tidy Go modules (non-blocking — a failure is noted in the PR body).
+- Opens a pull request with the dependency changes.
+
+Inputs:
+
+- `pre-release-pkg` (boolean, default `false`): Temporary flag for Flux 2.8 — uses the `flux/v2.8.x` pkg
+  branch for main branches because the pkg release branch was cut before the Flux distribution release.
+  Remove this input once Flux 2.8.0 is released.
+
+Example usage:
+
+```yaml
+name: bump-deps
+
+on:
+  workflow_dispatch:
+    inputs:
+      pre-release-pkg:
+        description: >-
+          Temporary flag for Flux 2.8: use the flux/v2.8.x pkg branch for main branches
+          because the pkg release branch was cut before the Flux distribution release.
+          Remove this input once Flux 2.8.0 is released.
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  bump-deps:
+    uses: fluxcd/gha-workflows/.github/workflows/bump-deps.yaml@vX.Y.Z
+    with:
+      pre-release-pkg: ${{ inputs.pre-release-pkg }}
+    secrets:
+      github-token: ${{ secrets.BOT_GITHUB_TOKEN }}
+```
+
+3rd-party actions used:
+
+- [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request)
+
 ### Sync Repository Labels
 
 The [labels-sync](.github/workflows/labels-sync.yaml) workflow synchronizes the
