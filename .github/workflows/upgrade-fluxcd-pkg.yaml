@@ -1,4 +1,4 @@
-name: bump-deps
+name: upgrade-fluxcd-pkg
 
 on:
   workflow_call:
@@ -17,7 +17,7 @@ on:
         required: true
 
 jobs:
-  bump:
+  upgrade-fluxcd-pkg:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -126,7 +126,7 @@ and the FOSSA analysis uploads the results to the FOSSA dashboard.
 
 ### Update fluxcd/pkg Dependencies
 
-The [bump-deps](.github/workflows/bump-deps.yaml) workflow automates updating `fluxcd/pkg` module
+The [upgrade-fluxcd-pkg](.github/workflows/upgrade-fluxcd-pkg.yaml) workflow automates updating `fluxcd/pkg` module
 dependencies in Flux controller repositories by performing the following steps:
 
 - Checks out the caller repository and `fluxcd/pkg` at the `main` branch.
@@ -143,7 +143,7 @@ Inputs:
 Example usage:
 
 ```yaml
-name: bump-deps
+name: upgrade-fluxcd-pkg
 
 on:
   workflow_dispatch:
@@ -158,8 +158,8 @@ on:
         type: boolean
 
 jobs:
-  bump-deps:
-    uses: fluxcd/gha-workflows/.github/workflows/bump-deps.yaml@vX.Y.Z
+  upgrade-fluxcd-pkg:
+    uses: fluxcd/gha-workflows/.github/workflows/upgrade-fluxcd-pkg.yaml@vX.Y.Z
     with:
       pre-release-pkg: ${{ inputs.pre-release-pkg }}
     secrets:
