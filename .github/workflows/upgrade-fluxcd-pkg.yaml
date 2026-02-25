@@ -2,15 +2,6 @@ name: upgrade-fluxcd-pkg
 
 on:
   workflow_call:
-    inputs:
-      pre-release-pkg:
-        description: >-
-          Temporary flag for Flux 2.8: use the flux/v2.8.x pkg branch for main branches
-          because the pkg release branch was cut before the Flux distribution release.
-          Remove this input once Flux 2.8.0 is released.
-        required: false
-        default: false
-        type: boolean
     secrets:
       github-token:
         description: 'GitHub token with contents and pull-requests write permissions'
@@ -46,7 +37,7 @@ jobs:
       - name: Remove fluxcd/pkg clone
         run: rm -rf fluxcd-pkg
       - name: Run bump
-        run: ./bin/flux-tools bump ${{ inputs.pre-release-pkg && '--pre-release-pkg' || '' }}
+        run: ./bin/flux-tools bump
       - name: Tidy
         id: tidy
         run: make tidy
