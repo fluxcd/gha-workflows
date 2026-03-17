@@ -15,7 +15,7 @@ runs:
     - name: Checkout
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: Setup Kustomize
-      uses: fluxcd/pkg/actions/kustomize@9a8c0edd5da84dc51a585738c67e3a3950d7fbf0 # main
+      uses: fluxcd/pkg/actions/kustomize@357bbcc3462ccf78cc17fd0b9b7d498b1848bf14 # main
     - name: Setup QEMU
       uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
     - name: Setup Docker Buildx
