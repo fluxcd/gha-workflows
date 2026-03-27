@@ -44,7 +44,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setup Kustomize
-        uses: fluxcd/pkg/actions/kustomize@9a8c0edd5da84dc51a585738c67e3a3950d7fbf0 # main
+        uses: fluxcd/pkg/actions/kustomize@357bbcc3462ccf78cc17fd0b9b7d498b1848bf14 # main
       - name: Prepare
         id: prep
         env:
@@ -96,7 +96,7 @@ jobs:
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      - uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+      - uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
         with:
           cosign-release: v2.6.1 # TODO: remove after Flux 2.8 with support for cosign v3
       - name: Sign images
@@ -116,7 +116,7 @@ jobs:
           mkdir -p config/release
           kustomize build ./config/crd > ./config/release/${CONTROLLER}.crds.yaml
           kustomize build ./config/manager > ./config/release/${CONTROLLER}.deployment.yaml
-      - uses: anchore/sbom-action/download-syft@17ae1740179002c89186b61233e0f892c3118b11 # v0.23.0
+      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
       - name: Create release and SBOM
         id: run-goreleaser
         if: startsWith(github.ref, 'refs/tags/v')
