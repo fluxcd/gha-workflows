@@ -3,7 +3,7 @@
 [![license](https://img.shields.io/github/license/fluxcd/gha-workflows.svg)](https://github.com/fluxcd/gha-workflows/blob/main/LICENSE)
 [![release](https://img.shields.io/github/release/fluxcd/gha-workflows/all.svg)](https://github.com/fluxcd/gha-workflows/releases)
 
-This repository contains reusable GitHub Workflows and Composite Actions shared across the Flux controller repositories.
+This repository contains reusable GitHub Workflows and Composite Actions shared across the Flux repositories.
 
 ## Workflows
 
@@ -64,6 +64,55 @@ Outputs:
 - `image-name`: Published container image name (without the registry)
 - `image-digest`: Published container image digest
 
+### Release Flux CLI Plugin
+
+The [cli-plugin-release](.github/workflows/cli-plugin-release.yaml) workflow automates the release
+of Flux CLI plugins (Go binary plus container image) by performing the following steps:
+
+- Publishes the GitHub release with GoReleaser, including the Go binary archives and checksums.
+- Attests the release artifacts with GitHub Attestations for SLSA provenance.
+- Builds a multi-arch image for `linux/amd64` and `linux/arm64` with Docker.
+- Pushes the image to `ghcr.io` tagged with the git tag and `latest`.
+- Signs the image with Cosign and GitHub OIDC.
+
+Inputs:
+
+- `go-version` (string, required): Go version to set up for the GoReleaser job.
+
+Example usage:
+
+```yaml
+name: release
+on:
+  push:
+    tags: [ 'v*' ]
+jobs:
+  release:
+    permissions:
+      contents: write # for creating the GitHub release.
+      id-token: write # for creating OIDC tokens for signing.
+      attestations: write # for GitHub Attestations.
+      artifact-metadata: write # for GitHub SLSA provenance.
+      packages: write # for pushing and signing container images.
+    uses: fluxcd/gha-workflows/.github/workflows/cli-plugin-release.yaml@vX.Y.Z
+    with:
+      go-version: 1.25.x
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+3rd-party actions used:
+
+- [anchore/sbom-action](https://github.com/anchore/sbom-action)
+- [actions/attest](https://github.com/actions/attest)
+- [docker/setup-qemu-action](https://github.com/docker/setup-qemu-action)
+- [docker/setup-buildx-action](https://github.com/docker/setup-buildx-action)
+- [docker/login-action](https://github.com/docker/login-action)
+- [docker/metadata-action](https://github.com/docker/metadata-action)
+- [docker/build-push-action](https://github.com/docker/build-push-action)
+- [goreleaser/goreleaser-action](https://github.com/goreleaser/goreleaser-action)
+- [sigstore/cosign-installer](https://github.com/sigstore/cosign-installer)
+
 ### Backport to Release Branches
 
 The [backport](.github/workflows/backport.yaml) workflow automates the backporting of merged pull
@@ -123,6 +172,32 @@ and the FOSSA analysis uploads the results to the FOSSA dashboard.
 3rd-party actions used:
 
 - [fossas/fossa-action](https://github.com/fossas/fossa-action)
+
+### CVE Scan
+
+The [cve-scan](.github/workflows/cve-scan.yaml) workflow scans Go modules for known vulnerabilities
+using [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck).
+
+Example usage:
+
+```yaml
+name: cve-scan
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 1" # every Monday at 8 AM (UTC)
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  govulncheck:
+    uses: fluxcd/gha-workflows/.github/workflows/cve-scan.yaml@vX.Y.Z
+```
+
+3rd-party actions used:
+
+- [golang/govulncheck-action](https://github.com/golang/govulncheck-action)
 
 ### Update fluxcd/pkg Dependencies
 
