@@ -9,6 +9,13 @@ inputs:
     description: 'Kind version to setup'
     required: false
     default: 'v0.32.0'
+  cluster-name:
+    description: 'Name of the kind cluster'
+    required: false
+    default: 'kind'
+  kind-config:
+    description: 'Path to a kind cluster configuration file (optional)'
+    required: false
 runs:
   using: "composite"
   steps:
@@ -32,4 +39,5 @@ runs:
       uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
       with:
         version: ${{ inputs.kind-version }}
-        cluster_name: kind
+        cluster_name: ${{ inputs.cluster-name }}
+        config: ${{ inputs.kind-config }}
