@@ -284,6 +284,19 @@ jobs:
 The [setup-kubernetes](.github/actions/setup-kubernetes/action.yml) composite action configures
 the GitHub runner to build and test Flux controllers with Kubernetes Kind clusters.
 
+Inputs:
+
+- `go-version` (string, required): Go version to set up.
+- `kind-version` (string, optional): Kind version to set up.
+- `cluster-name` (string, optional): Name of the kind cluster.
+- `kind-config` (string, optional): Path to a kind cluster configuration file.
+- `skip-checkout` (boolean, optional, default `false`): Skip checking out the repository when the caller
+  has already run checkout. Useful for generating dynamic kind configs or spinning up multiple clusters
+  in a single job.
+- `skip-tools` (boolean, optional, default `false`): Skip the toolchain setup steps (Kustomize, QEMU,
+  Buildx, Go) and only create the kind cluster. Useful when spinning up a second or third cluster in a single
+  job after the tools have already been set up by a prior run.
+
 Example usage:
 
 ```yaml
@@ -303,6 +316,46 @@ jobs:
         with:
           go-version: 1.25.x
           kind-version: v0.30.0
+      - name: Run tests
+        run: make test
+```
+
+To generate dynamic kind configs or run against multiple clusters in a single job, check out the
+repository once and reuse the toolchain. The first invocation sets up the tools and creates a cluster;
+each subsequent invocation sets `skip-checkout: true` and `skip-tools: true` to only create an
+additional cluster:
+
+```yaml
+name: e2e-multicluster
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # for reading the repository code.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Generate kind configs
+        run: ./hack/gen-kind-configs.sh # writes /tmp/kind-cluster-1.yaml, /tmp/kind-cluster-2.yaml
+      - name: Setup tools and cluster 1
+        uses: fluxcd/gha-workflows/.github/actions/setup-kubernetes@vX.Y.Z
+        with:
+          go-version: 1.25.x
+          cluster-name: cluster-1
+          kind-config: /tmp/kind-cluster-1.yaml
+          skip-checkout: true
+      - name: Setup cluster 2
+        uses: fluxcd/gha-workflows/.github/actions/setup-kubernetes@vX.Y.Z
+        with:
+          go-version: 1.25.x
+          cluster-name: cluster-2
+          kind-config: /tmp/kind-cluster-2.yaml
+          skip-checkout: true
+          skip-tools: true
       - name: Run tests
         run: make test
 ```
