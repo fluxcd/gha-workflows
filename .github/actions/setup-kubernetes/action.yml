@@ -32,7 +32,7 @@ runs:
       uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - name: Setup Kustomize
       if: ${{ inputs.skip-tools != 'true' }}
-      uses: fluxcd/pkg/actions/kustomize@b98e2b0975e0863f32790229ce7c9f097ed67706 # main
+      uses: fluxcd/pkg/actions/kustomize@e2882a16ccc484c672ed2b98aace1e91dee1d29b # main
     - name: Setup QEMU
       if: ${{ inputs.skip-tools != 'true' }}
       uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
