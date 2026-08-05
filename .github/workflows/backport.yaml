@@ -25,6 +25,11 @@ jobs:
           github_token: ${{ secrets.github-token }}
           # Match labels with a pattern `backport:<target-branch>`
           label_pattern: '^backport:([^ ]+)$'
+          # Open draft PRs when cherry-picks have conflicts
+          experimental: |
+            {
+              "conflict_resolution": "draft_commit_conflicts"
+            }
           # A bit shorter pull-request title than the default
           pull_title: '[${target_branch}] ${pull_title}'
           # Simpler PR description than default

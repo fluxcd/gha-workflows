@@ -117,7 +117,8 @@ jobs:
 
 The [backport](.github/workflows/backport.yaml) workflow automates the backporting of merged pull
 requests to release branches based on labels in the format `backport:release/semver`
-(e.g. `backport:release/v2.0.x`).
+(e.g. `backport:release/v2.0.x`). If a cherry-pick conflicts, the workflow opens a
+draft pull request with the conflict committed for manual resolution.
 
 Example usage:
 
