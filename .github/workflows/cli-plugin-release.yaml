@@ -7,6 +7,11 @@ on:
         description: 'Go version to setup'
         required: true
         type: string
+      release-candidate-prefix:
+        description: 'release candidate image tag prefix'
+        required: false
+        default: 'rc'
+        type: string
     secrets:
       github-token:
         description: 'GitHub token for creating releases and pushing to GHCR'
@@ -14,6 +19,7 @@ on:
 
 jobs:
   cli-release:
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write # for creating the GitHub release.
@@ -52,6 +58,7 @@ jobs:
 
   cli-release-docker:
     needs: [cli-release]
+    if: ${{ !cancelled() && (!startsWith(github.ref, 'refs/tags/v') || needs.cli-release.result == 'success') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write # for creating OIDC tokens for signing.
@@ -59,6 +66,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Version info
+        id: ver
+        env:
+          GIT_REF: ${{ github.ref }}
+          GIT_SHA: ${{ github.sha }}
+          RELEASE_CANDIDATE_PREFIX: ${{ inputs.release-candidate-prefix }}
+        run: |
+          VERSION="${RELEASE_CANDIDATE_PREFIX}-${GIT_SHA::8}"
+          if [[ $GIT_REF == refs/tags/* ]]; then
+            VERSION=${GIT_REF/refs\/tags\//}
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
       - name: Setup QEMU
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
       - name: Setup Docker Buildx
@@ -77,8 +96,8 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=${{ github.ref_name }}
-            type=raw,value=latest
+            type=raw,value=${{ steps.ver.outputs.VERSION }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
       - name: Push image
         id: build-push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -92,7 +111,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: "VERSION=${{ github.ref_name }}"
+          build-args: "VERSION=${{ steps.ver.outputs.VERSION }}"
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Sign image
         env:

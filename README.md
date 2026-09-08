@@ -69,15 +69,16 @@ Outputs:
 The [cli-plugin-release](.github/workflows/cli-plugin-release.yaml) workflow automates the release
 of Flux CLI plugins (Go binary plus container image) by performing the following steps:
 
-- Publishes the GitHub release with GoReleaser, including the Go binary archives and checksums.
-- Attests the release artifacts with GitHub Attestations for SLSA provenance.
+- Publishes the GitHub release with GoReleaser, including the Go binary archives and checksums, when run on a version tag.
+- Attests the release artifacts with GitHub Attestations for SLSA provenance, when run on a version tag.
 - Builds a multi-arch image for `linux/amd64` and `linux/arm64` with Docker.
-- Pushes the image to `ghcr.io` tagged with the git tag and `latest`.
+- Pushes the image to `ghcr.io` tagged with the git tag and `latest`, or with a release candidate prefix and short commit SHA when run on a branch.
 - Signs the image with Cosign and GitHub OIDC.
 
 Inputs:
 
 - `go-version` (string, required): Go version to set up for the GoReleaser job.
+- `release-candidate-prefix` (string, default `rc`): Image tag prefix used when the workflow runs on a branch.
 
 Example usage:
 
@@ -86,6 +87,12 @@ name: release
 on:
   push:
     tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'image tag prefix'
+        default: 'rc'
+        required: true
 jobs:
   release:
     permissions:
@@ -97,6 +104,7 @@ jobs:
     uses: fluxcd/gha-workflows/.github/workflows/cli-plugin-release.yaml@vX.Y.Z
     with:
       go-version: 1.25.x
+      release-candidate-prefix: ${{ github.event.inputs.tag }}
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
